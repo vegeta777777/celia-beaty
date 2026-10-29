@@ -1,23 +1,23 @@
 /**
- * CELIA beauty — lógica de la tienda.
+ * CELIA beauty — Store business logic.
  *
- * Módulos (todos en JavaScript estándar, sin dependencias):
- *   CONFIG    → constantes de negocio (WhatsApp, cupones, claves de storage)
- *   Storage   → lectura/escritura segura en localStorage
- *   Catalog   → productos y renderizado del catálogo + búsqueda
- *   Cart      → estado del carrito (agregar, sumar, restar, eliminar)
- *   Pricing   → subtotal, descuento y total
- *   WhatsApp  → generación de URLs codificadas para wa.me
- *   UI        → drawer, modales, toast, iconos
- *   Checkout  → validación del formulario y registro de la orden
- *   Admin     → panel "Base de Datos Local"
+ * Modules (Standard Vanilla JavaScript, zero dependencies):
+ *   CONFIG    → Business constants (WhatsApp, coupons, localStorage keys)
+ *   Storage   → Safe read/write operations for localStorage
+ *   Catalog   → Products dataset, live search filtering, and product card rendering
+ *   Cart      → Cart state machine (add, increment, decrement, remove)
+ *   Pricing   → Subtotal, discount calculations, and grand total
+ *   WhatsApp  → Encoded order and contact URI generator for wa.me
+ *   UI        → Drawer panels, modals, toast notifications, and Lucide icons
+ *   Checkout  → Form validation and structured order record creation
+ *   Admin     → Local order/customer management modal
  */
 (function () {
   'use strict';
 
   /* ============================== CONFIG ============================== */
   const CONFIG = {
-    whatsappNumber: '14085051897',
+    whatsappNumber: '(669)301-0456,
     currency: 'USD',
     locale: 'en-US',
     coupons: {
@@ -63,7 +63,7 @@
       }
     },
     remove(key) {
-      try { localStorage.removeItem(key); } catch (_) { /* sin almacenamiento */ }
+      try { localStorage.removeItem(key); } catch (_) { /* storage disabled */ }
     },
   };
 
@@ -76,23 +76,23 @@
         description: 'Hidratación profunda y efecto relleno para una piel luminosa y elástica.',
         price: 32.0,
         image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=900&q=80',
-        tags: 'suero serum hidratante acido hialuronico hidratacion',
+        tags: 'suero serum hidratante acido hialuronico hidratacion hyaluronic acid hydrating',
       },
       {
-        id: 'gel-limpiador',
+        id: 'gel-limpiador piel grasa',
         name: 'Gel Limpiador Facial Espumoso',
         description: 'Limpieza suave que retira impurezas y exceso de grasa sin resecar.',
         price: 24.0,
         image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=80',
-        tags: 'gel limpiador facial espumoso limpieza cleanser',
+        tags: 'gel limpiador facial espumoso limpieza cleanser foaming facial wash',
       },
       {
-        id: 'crema-ceramidas',
+        id: 'crema-ceramidas rehidratante',
         name: 'Crema Reparadora con Ceramidas',
         description: 'Restaura la barrera cutánea y calma la piel sensible o irritada.',
         price: 28.0,
         image: 'https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?auto=format&fit=crop&w=900&q=80',
-        tags: 'crema reparadora ceramidas barrera hidratante',
+        tags: 'crema reparadora ceramidas barrera hidratante barrier repair cream moisturizing',
       },
       {
         id: 'protector-solar',
@@ -100,7 +100,7 @@
         description: 'Textura ultraligera de acabado invisible. Protección UVA/UVB muy alta.',
         price: 30.0,
         image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=900&q=80',
-        tags: 'protector solar facial fluido spf 50 bloqueador sol',
+        tags: 'protector solar facial fluido spf 50 bloqueador sol sunscreen broad spectrum',
       },
       {
         id: 'contorno-ojos',
@@ -108,7 +108,7 @@
         description: 'Reduce bolsas y ojeras visibles, devolviendo frescura a la mirada.',
         price: 26.0,
         image: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=900&q=80',
-        tags: 'contorno ojos revitalizante ojeras bolsas',
+        tags: 'contorno ojos revitalizante ojeras bolsas eye cream dark circles revitalizing',
       },
     ],
 
@@ -153,24 +153,30 @@
 
     render(query = '') {
       const list = this.filter(query);
-      $('#product-grid').innerHTML = list.map((p) => this.cardHTML(p)).join('');
-      $('#empty-search').classList.toggle('hidden', list.length > 0);
-      $('#search-status').textContent = query.trim()
-        ? `${list.length} resultado${list.length === 1 ? '' : 's'} para “${query.trim()}”`
-        : '';
+      const grid = $('#product-grid');
+      if (!grid) return;
+      grid.innerHTML = list.map((p) => this.cardHTML(p)).join('');
+      
+      const emptyEl = $('#empty-search');
+      if (emptyEl) emptyEl.classList.toggle('hidden', list.length > 0);
+      
+      const statusEl = $('#search-status');
+      if (statusEl) {
+        statusEl.textContent = query.trim()
+          ? `${list.length} result${list.length === 1 ? '' : 's'} for “${query.trim()}”`
+          : '';
+      }
       UI.icons();
     },
   };
 
   /* =============================== CART =============================== */
   const Cart = {
-    // Estado: { [productId]: qty }
     items: {},
     coupon: null,
 
     load() {
       const saved = Storage.get(CONFIG.storageKeys.cart, {});
-      // Descarta productos que ya no existan en el catálogo
       this.items = Object.fromEntries(
         Object.entries(saved).filter(([id, qty]) => Catalog.byId(id) && qty > 0)
       );
@@ -300,7 +306,9 @@
 
     toast(text) {
       const el = $('#toast');
-      $('#toast-text').textContent = text;
+      const textEl = $('#toast-text');
+      if (!el || !textEl) return;
+      textEl.textContent = text;
       el.classList.remove('hidden');
       clearTimeout(this._toastTimer);
       this._toastTimer = setTimeout(() => el.classList.add('hidden'), 2200);
@@ -308,12 +316,14 @@
 
     lockScroll(lock) {
       document.body.classList.toggle('no-scroll', lock);
-      $('#overlay').classList.toggle('hidden', !lock);
+      const overlay = $('#overlay');
+      if (overlay) overlay.classList.toggle('hidden', !lock);
     },
 
     open(id) {
       if (this.openPanel) this.close(false);
       const el = document.getElementById(id);
+      if (!el) return;
       if (id === 'cart-drawer') {
         el.classList.remove('translate-x-full');
       } else {
@@ -331,6 +341,7 @@
       const id = this.openPanel;
       if (!id) return;
       const el = document.getElementById(id);
+      if (!el) return;
       if (id === 'cart-drawer') {
         el.classList.add('translate-x-full');
       } else {
@@ -344,46 +355,57 @@
 
     bumpBadge() {
       const badge = $('#cart-badge');
+      if (!badge) return;
       badge.classList.remove('badge-pop');
-      void badge.offsetWidth; // reinicia la animación
+      void badge.offsetWidth;
       badge.classList.add('badge-pop');
     },
 
     renderCart() {
       const count = Cart.count();
       const badge = $('#cart-badge');
-      badge.textContent = count > 99 ? '99+' : String(count);
-      badge.classList.toggle('opacity-0', count === 0);
+      if (badge) {
+        badge.textContent = count > 99 ? '99+' : String(count);
+        badge.classList.toggle('opacity-0', count === 0);
+      }
 
       const empty = Cart.isEmpty();
-      $('#cart-items').classList.toggle('hidden', empty);
-      $('#cart-empty').classList.toggle('hidden', !empty);
-      $('#cart-empty').classList.toggle('flex', empty);
-      $('#checkout-button').disabled = empty;
+      const cartItems = $('#cart-items');
+      const cartEmpty = $('#cart-empty');
+      const checkoutBtn = $('#checkout-button');
 
-      $('#cart-items').innerHTML = Cart.lines().map((l) => `
-        <div class="flex gap-4 fade-in">
-          <div class="w-20 h-24 rounded-2xl overflow-hidden shrink-0 img-fallback">
-            <img src="${l.product.image}" alt="" class="w-full h-full object-cover" onerror="this.style.display='none'" />
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-start justify-between gap-2">
-              <p class="font-serif leading-snug">${escapeHTML(l.product.name)}</p>
-              <button type="button" data-remove="${l.id}" class="p-1 text-taupe hover:text-red-600" aria-label="Eliminar ${escapeHTML(l.product.name)}">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
-              </button>
+      if (cartItems) cartItems.classList.toggle('hidden', empty);
+      if (cartEmpty) {
+        cartEmpty.classList.toggle('hidden', !empty);
+        cartEmpty.classList.toggle('flex', empty);
+      }
+      if (checkoutBtn) checkoutBtn.disabled = empty;
+
+      if (cartItems) {
+        cartItems.innerHTML = Cart.lines().map((l) => `
+          <div class="flex gap-4 fade-in">
+            <div class="w-20 h-24 rounded-2xl overflow-hidden shrink-0 img-fallback">
+              <img src="${l.product.image}" alt="" class="w-full h-full object-cover" onerror="this.style.display='none'" />
             </div>
-            <p class="text-xs text-taupe mt-0.5">${money(l.product.price)} c/u</p>
-            <div class="mt-2 flex items-center justify-between">
-              <div class="inline-flex items-center rounded-full border border-sand bg-white">
-                <button type="button" data-dec="${l.id}" class="w-8 h-8 flex items-center justify-center hover:text-rose" aria-label="Restar uno"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
-                <span class="w-8 text-center text-sm font-medium" aria-live="polite">${l.qty}</span>
-                <button type="button" data-inc="${l.id}" class="w-8 h-8 flex items-center justify-center hover:text-rose" aria-label="Sumar uno"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-2">
+                <p class="font-serif leading-snug">${escapeHTML(l.product.name)}</p>
+                <button type="button" data-remove="${l.id}" class="p-1 text-taupe hover:text-red-600" aria-label="Eliminar ${escapeHTML(l.product.name)}">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
               </div>
-              <span class="font-semibold text-sm">${money(l.lineTotal)}</span>
+              <p class="text-xs text-taupe mt-0.5">${money(l.product.price)} c/u</p>
+              <div class="mt-2 flex items-center justify-between">
+                <div class="inline-flex items-center rounded-full border border-sand bg-white">
+                  <button type="button" data-dec="${l.id}" class="w-8 h-8 flex items-center justify-center hover:text-rose" aria-label="Restar uno"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
+                  <span class="w-8 text-center text-sm font-medium" aria-live="polite">${l.qty}</span>
+                  <button type="button" data-inc="${l.id}" class="w-8 h-8 flex items-center justify-center hover:text-rose" aria-label="Sumar uno"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
+                </div>
+                <span class="font-semibold text-sm">${money(l.lineTotal)}</span>
+              </div>
             </div>
-          </div>
-        </div>`).join('');
+          </div>`).join('');
+      }
 
       this.renderTotals();
       this.icons();
@@ -393,32 +415,48 @@
       const t = Pricing.totals();
       const label = t.coupon ? `(${t.coupon} · ${t.couponLabel})` : '';
 
-      $('#cart-subtotal').textContent = money(t.subtotal);
-      $('#cart-discount').textContent = `−${money(t.discount)}`;
-      $('#cart-discount-label').textContent = label;
-      $('#cart-total').textContent = money(t.total);
+      const cartSub = $('#cart-subtotal');
+      const cartDisc = $('#cart-discount');
+      const cartDiscLbl = $('#cart-discount-label');
+      const cartTot = $('#cart-total');
 
-      $('#co-subtotal').textContent = money(t.subtotal);
-      $('#co-discount').textContent = `−${money(t.discount)}`;
-      $('#co-discount-label').textContent = label;
-      $('#co-total').textContent = money(t.total);
+      if (cartSub) cartSub.textContent = money(t.subtotal);
+      if (cartDisc) cartDisc.textContent = `−${money(t.discount)}`;
+      if (cartDiscLbl) cartDiscLbl.textContent = label;
+      if (cartTot) cartTot.textContent = money(t.total);
+
+      const coSub = $('#co-subtotal');
+      const coDisc = $('#co-discount');
+      const coDiscLbl = $('#co-discount-label');
+      const coTot = $('#co-total');
+
+      if (coSub) coSub.textContent = money(t.subtotal);
+      if (coDisc) coDisc.textContent = `−${money(t.discount)}`;
+      if (coDiscLbl) coDiscLbl.textContent = label;
+      if (coTot) coTot.textContent = money(t.total);
 
       const msg = $('#coupon-message');
-      if (t.coupon) {
-        msg.innerHTML = `<span class="text-emerald-700">Cupón <b>${escapeHTML(t.coupon)}</b> aplicado.</span>
-          <button type="button" id="coupon-remove" class="underline text-taupe ml-1">Quitar</button>`;
-        $('#coupon-input').value = t.coupon;
-      } else if ($('#coupon-remove')) {
-        // El cupón dejó de estar activo (p. ej. tras confirmar un pedido)
-        msg.textContent = '';
-        $('#coupon-input').value = '';
+      const couponInput = $('#coupon-input');
+
+      if (msg) {
+        if (t.coupon) {
+          msg.innerHTML = `<span class="text-emerald-700">Cupón <b>${escapeHTML(t.coupon)}</b> aplicado.</span>
+            <button type="button" id="coupon-remove" class="underline text-taupe ml-1">Quitar</button>`;
+          if (couponInput) couponInput.value = t.coupon;
+        } else if ($('#coupon-remove')) {
+          msg.textContent = '';
+          if (couponInput) couponInput.value = '';
+        }
       }
 
-      $('#checkout-items').innerHTML = Cart.lines().map((l) => `
-        <li class="flex justify-between gap-3">
-          <span><span class="text-taupe">${l.qty} ×</span> ${escapeHTML(l.product.name)}</span>
-          <span class="font-medium whitespace-nowrap">${money(l.lineTotal)}</span>
-        </li>`).join('');
+      const checkoutItems = $('#checkout-items');
+      if (checkoutItems) {
+        checkoutItems.innerHTML = Cart.lines().map((l) => `
+          <li class="flex justify-between gap-3">
+            <span><span class="text-taupe">${l.qty} ×</span> ${escapeHTML(l.product.name)}</span>
+            <span class="font-medium whitespace-nowrap">${money(l.lineTotal)}</span>
+          </li>`).join('');
+      }
     },
   };
 
@@ -467,7 +505,8 @@
     },
 
     setError(input, message) {
-      const err = input.parentElement.querySelector('.field-error');
+      if (!input) return;
+      const err = input.parentElement ? input.parentElement.querySelector('.field-error') : null;
       input.classList.toggle('border-red-400', !!message);
       input.setAttribute('aria-invalid', message ? 'true' : 'false');
       if (err) {
@@ -477,6 +516,7 @@
     },
 
     validateField(input) {
+      if (!input) return true;
       const rule = this.rules[input.name];
       if (!rule) return true;
       const message = rule(input.value);
@@ -486,19 +526,22 @@
 
     validate() {
       const form = $('#checkout-form');
+      if (!form) return false;
       const fields = ['name', 'phone', 'email', 'address'];
       if (this.isCard()) fields.push('card', 'exp', 'cvc');
 
       let firstInvalid = null;
       fields.forEach((name) => {
         const input = form.elements[name];
-        if (!this.validateField(input) && !firstInvalid) firstInvalid = input;
+        if (input && !this.validateField(input) && !firstInvalid) firstInvalid = input;
       });
 
       const payErr = $('#payment-error');
       const hasPayment = !!this.paymentMethod();
-      payErr.textContent = hasPayment ? '' : 'Selecciona un método de pago.';
-      payErr.classList.toggle('hidden', hasPayment);
+      if (payErr) {
+        payErr.textContent = hasPayment ? '' : 'Selecciona un método de pago.';
+        payErr.classList.toggle('hidden', hasPayment);
+      }
 
       if (firstInvalid) firstInvalid.focus();
       return !firstInvalid && hasPayment;
@@ -529,7 +572,6 @@
         status: 'Pendiente',
       };
       if (payment === 'Tarjeta (simulado)') {
-        // Nunca se guarda el número completo: solo los últimos 4 dígitos.
         const digits = form.elements.card.value.replace(/\D/g, '');
         order.cardLast4 = digits.slice(-4);
         order.payment = `Tarjeta (simulado) •••• ${order.cardLast4}`;
@@ -587,17 +629,21 @@
 
     toggleCardFields() {
       const show = this.isCard();
-      $('#card-fields').classList.toggle('hidden', !show);
-      if (!show) ['card', 'exp', 'cvc'].forEach((n) => this.setError($('#checkout-form').elements[n], ''));
+      const cardContainer = $('#card-fields');
+      if (cardContainer) cardContainer.classList.toggle('hidden', !show);
+      if (!show) {
+        const form = $('#checkout-form');
+        if (form) ['card', 'exp', 'cvc'].forEach((n) => this.setError(form.elements[n], ''));
+      }
     },
 
     bind() {
       const form = $('#checkout-form');
+      if (!form) return;
       form.addEventListener('submit', (e) => this.submit(e));
       form.addEventListener('change', (e) => {
         if (e.target.name === 'payment') this.toggleCardFields();
       });
-      // Valida al salir de cada campo y limpia el error mientras se corrige
       form.addEventListener('focusout', (e) => {
         if (e.target.name && e.target.value) this.validateField(e.target);
       });
@@ -636,15 +682,18 @@
       const { customers, orders } = this.data();
       const revenue = round2(orders.reduce((s, o) => s + (o.total || 0), 0));
 
-      $('#admin-stats').innerHTML = [
-        ['Clientes', customers.length],
-        ['Órdenes', orders.length],
-        ['Ventas', money(revenue)],
-      ].map(([label, value]) => `
-        <div class="rounded-2xl bg-cream px-4 py-3">
-          <p class="text-[11px] uppercase tracking-wider text-taupe">${label}</p>
-          <p class="font-serif text-xl sm:text-2xl mt-0.5">${value}</p>
-        </div>`).join('');
+      const statsEl = $('#admin-stats');
+      if (statsEl) {
+        statsEl.innerHTML = [
+          ['Clientes', customers.length],
+          ['Órdenes', orders.length],
+          ['Ventas', money(revenue)],
+        ].map(([label, value]) => `
+          <div class="rounded-2xl bg-cream px-4 py-3">
+            <p class="text-[11px] uppercase tracking-wider text-taupe">${label}</p>
+            <p class="font-serif text-xl sm:text-2xl mt-0.5">${value}</p>
+          </div>`).join('');
+      }
 
       $$('.admin-tab').forEach((b) => {
         const active = b.dataset.tab === this.tab;
@@ -684,9 +733,13 @@
           </tr>`);
       }
 
-      $('#admin-thead').innerHTML = `<tr>${head.map((h) => `<th class="px-4 py-3 font-semibold">${h}</th>`).join('')}</tr>`;
-      $('#admin-tbody').innerHTML = rows.join('');
-      $('#admin-empty').classList.toggle('hidden', rows.length > 0);
+      const thead = $('#admin-thead');
+      const tbody = $('#admin-tbody');
+      const emptyEl = $('#admin-empty');
+
+      if (thead) thead.innerHTML = `<tr>${head.map((h) => `<th class="px-4 py-3 font-semibold">${h}</th>`).join('')}</tr>`;
+      if (tbody) tbody.innerHTML = rows.join('');
+      if (emptyEl) emptyEl.classList.toggle('hidden', rows.length > 0);
     },
 
     exportJSON() {
@@ -709,67 +762,84 @@
     },
 
     bind() {
-      $('#admin-button').addEventListener('click', () => {
-        this.render();
-        UI.open('admin-modal');
-        UI.icons();
-      });
+      const adminBtn = $('#admin-button');
+      if (adminBtn) {
+        adminBtn.addEventListener('click', () => {
+          this.render();
+          UI.open('admin-modal');
+          UI.icons();
+        });
+      }
       $$('.admin-tab').forEach((b) =>
         b.addEventListener('click', () => { this.tab = b.dataset.tab; this.render(); })
       );
-      $('#admin-export').addEventListener('click', () => this.exportJSON());
-      $('#admin-clear').addEventListener('click', () => this.clear());
+      const exportBtn = $('#admin-export');
+      if (exportBtn) exportBtn.addEventListener('click', () => this.exportJSON());
+      const clearBtn = $('#admin-clear');
+      if (clearBtn) clearBtn.addEventListener('click', () => this.clear());
     },
   };
 
   /* =============================== INIT =============================== */
   function bindGlobalEvents() {
-    // Búsqueda en vivo
-    $('#search-input').addEventListener('input', (e) => Catalog.render(e.target.value));
+    const searchInput = $('#search-input');
+    if (searchInput) searchInput.addEventListener('input', (e) => Catalog.render(e.target.value));
 
-    // Agregar al carrito (delegación sobre el catálogo)
-    $('#product-grid').addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-add]');
-      if (!btn) return;
-      const product = Catalog.byId(btn.dataset.add);
-      Cart.add(product.id);
-      UI.bumpBadge();
-      UI.toast(`${product.name} agregado al carrito`);
-    });
+    const productGrid = $('#product-grid');
+    if (productGrid) {
+      productGrid.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-add]');
+        if (!btn) return;
+        const product = Catalog.byId(btn.dataset.add);
+        if (!product) return;
+        Cart.add(product.id);
+        UI.bumpBadge();
+        UI.toast(`${product.name} agregado al carrito`);
+      });
+    }
 
-    // Controles del carrito (+ / − / eliminar)
-    $('#cart-items').addEventListener('click', (e) => {
-      const inc = e.target.closest('[data-inc]');
-      const dec = e.target.closest('[data-dec]');
-      const rem = e.target.closest('[data-remove]');
-      if (inc) Cart.increment(inc.dataset.inc);
-      else if (dec) Cart.decrement(dec.dataset.dec);
-      else if (rem) Cart.remove(rem.dataset.remove);
-    });
+    const cartItems = $('#cart-items');
+    if (cartItems) {
+      cartItems.addEventListener('click', (e) => {
+        const inc = e.target.closest('[data-inc]');
+        const dec = e.target.closest('[data-dec]');
+        const rem = e.target.closest('[data-remove]');
+        if (inc) Cart.increment(inc.dataset.inc);
+        else if (dec) Cart.decrement(dec.dataset.dec);
+        else if (rem) Cart.remove(rem.dataset.remove);
+      });
+    }
 
-    // Cupón
-    $('#coupon-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const input = $('#coupon-input');
-      const msg = $('#coupon-message');
-      if (!input.value.trim()) {
-        msg.innerHTML = '<span class="text-taupe">Escribe un código de descuento.</span>';
-        return;
-      }
-      if (Cart.applyCoupon(input.value)) {
-        UI.toast('¡Cupón aplicado! 10% de descuento');
-      } else {
-        msg.innerHTML = '<span class="text-red-600">Código no válido. Prueba con CELIA10.</span>';
-      }
-    });
-    $('#coupon-message').addEventListener('click', (e) => {
-      if (e.target.id !== 'coupon-remove') return;
-      Cart.removeCoupon();
-      $('#coupon-input').value = '';
-      $('#coupon-message').innerHTML = '<span class="text-taupe">Cupón eliminado.</span>';
-    });
+    const couponForm = $('#coupon-form');
+    if (couponForm) {
+      couponForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = $('#coupon-input');
+        const msg = $('#coupon-message');
+        if (!input || !msg) return;
+        if (!input.value.trim()) {
+          msg.innerHTML = '<span class="text-taupe">Escribe un código de descuento.</span>';
+          return;
+        }
+        if (Cart.applyCoupon(input.value)) {
+          UI.toast('¡Cupón aplicado! 10% de descuento');
+        } else {
+          msg.innerHTML = '<span class="text-red-600">Código no válido. Prueba con CELIA10.</span>';
+        }
+      });
+    }
 
-    // Copiar cupón desde el banner
+    const couponMessage = $('#coupon-message');
+    if (couponMessage) {
+      couponMessage.addEventListener('click', (e) => {
+        if (e.target.id !== 'coupon-remove') return;
+        Cart.removeCoupon();
+        const input = $('#coupon-input');
+        if (input) input.value = '';
+        couponMessage.innerHTML = '<span class="text-taupe">Cupón eliminado.</span>';
+      });
+    }
+
     $$('[data-copy-coupon]').forEach((b) =>
       b.addEventListener('click', () => {
         if (navigator.clipboard) navigator.clipboard.writeText('CELIA10').catch(() => {});
@@ -777,30 +847,39 @@
       })
     );
 
-    // Apertura de paneles
-    $('#cart-button').addEventListener('click', () => UI.open('cart-drawer'));
-    $('#checkout-button').addEventListener('click', () => {
-      if (Cart.isEmpty()) return;
-      UI.renderTotals();
-      UI.open('checkout-modal');
+    const cartBtn = $('#cart-button');
+    if (cartBtn) cartBtn.addEventListener('click', () => UI.open('cart-drawer'));
+
+    const checkoutBtn = $('#checkout-button');
+    if (checkoutBtn) {
+      checkoutBtn.addEventListener('click', () => {
+        if (Cart.isEmpty()) return;
+        UI.renderTotals();
+        UI.open('checkout-modal');
+      });
+    }
+
+    $$('[data-close]').forEach((b) => b.addEventListener('click', () => UI.close()));
+    
+    const overlay = $('#overlay');
+    if (overlay) overlay.addEventListener('click', () => UI.close());
+
+    ['checkout-modal', 'admin-modal'].forEach((id) => {
+      const modal = document.getElementById(id);
+      if (modal) {
+        modal.addEventListener('click', (e) => {
+          if (e.target.id === id) UI.close();
+        });
+      }
     });
 
-    // Cierre de paneles: botón X, overlay, clic fuera del contenido y tecla Escape
-    $$('[data-close]').forEach((b) => b.addEventListener('click', () => UI.close()));
-    $('#overlay').addEventListener('click', () => UI.close());
-    ['checkout-modal', 'admin-modal'].forEach((id) =>
-      document.getElementById(id).addEventListener('click', (e) => {
-        if (e.target.id === id) UI.close();
-      })
-    );
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') UI.close();
     });
 
-    // Contacto WhatsApp con mensaje prellenado
-    $('#whatsapp-contact').href = WhatsApp.url(WhatsApp.contactMessage());
+    const waContact = $('#whatsapp-contact');
+    if (waContact) waContact.href = WhatsApp.url(WhatsApp.contactMessage());
 
-    // Sincroniza el carrito entre pestañas abiertas
     window.addEventListener('storage', (e) => {
       if (e.key === CONFIG.storageKeys.cart || e.key === CONFIG.storageKeys.coupon) {
         Cart.load();
@@ -810,7 +889,8 @@
   }
 
   function init() {
-    $('#year').textContent = new Date().getFullYear();
+    const yearEl = $('#year');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
     Cart.load();
     Catalog.render();
     UI.renderCart();
@@ -823,6 +903,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  // Exposición opcional para depuración desde la consola
   window.CeliaBeauty = { CONFIG, Cart, Pricing, WhatsApp, Storage };
 })();
