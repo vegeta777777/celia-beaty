@@ -1,23 +1,12 @@
 /**
  * CELIA beauty — Store business logic.
- *
- * Modules (Standard Vanilla JavaScript, zero dependencies):
- *   CONFIG    → Business constants (WhatsApp, coupons, localStorage keys)
- *   Storage   → Safe read/write operations for localStorage
- *   Catalog   → Products dataset, live search filtering, and product card rendering
- *   Cart      → Cart state machine (add, increment, decrement, remove)
- *   Pricing   → Subtotal, discount calculations, and grand total
- *   WhatsApp  → Encoded order and contact URI generator for wa.me
- *   UI        → Drawer panels, modals, toast notifications, and Lucide icons
- *   Checkout  → Form validation and structured order record creation
- *   Admin     → Local order/customer management modal
  */
 (function () {
   'use strict';
 
   /* ============================== CONFIG ============================== */
   const CONFIG = {
-    whatsappNumber: '(669)301-0456,
+    whatsappNumber: '14085051897',
     currency: 'USD',
     locale: 'en-US',
     coupons: {
@@ -63,7 +52,7 @@
       }
     },
     remove(key) {
-      try { localStorage.removeItem(key); } catch (_) { /* storage disabled */ }
+      try { localStorage.removeItem(key); } catch (_) {}
     },
   };
 
@@ -76,23 +65,23 @@
         description: 'Hidratación profunda y efecto relleno para una piel luminosa y elástica.',
         price: 32.0,
         image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=900&q=80',
-        tags: 'suero serum hidratante acido hialuronico hidratacion hyaluronic acid hydrating',
+        tags: 'suero serum hidratante acido hialuronico hidratacion hyaluronic acid',
       },
       {
-        id: 'gel-limpiador piel grasa',
+        id: 'gel-limpiador',
         name: 'Gel Limpiador Facial Espumoso',
         description: 'Limpieza suave que retira impurezas y exceso de grasa sin resecar.',
         price: 24.0,
         image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&w=900&q=80',
-        tags: 'gel limpiador facial espumoso limpieza cleanser foaming facial wash',
+        tags: 'gel limpiador facial espumoso limpieza cleanser',
       },
       {
-        id: 'crema-ceramidas rehidratante',
+        id: 'crema-ceramidas',
         name: 'Crema Reparadora con Ceramidas',
         description: 'Restaura la barrera cutánea y calma la piel sensible o irritada.',
         price: 28.0,
         image: 'https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?auto=format&fit=crop&w=900&q=80',
-        tags: 'crema reparadora ceramidas barrera hidratante barrier repair cream moisturizing',
+        tags: 'crema reparadora ceramidas barrera hidratante',
       },
       {
         id: 'protector-solar',
@@ -100,7 +89,7 @@
         description: 'Textura ultraligera de acabado invisible. Protección UVA/UVB muy alta.',
         price: 30.0,
         image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?auto=format&fit=crop&w=900&q=80',
-        tags: 'protector solar facial fluido spf 50 bloqueador sol sunscreen broad spectrum',
+        tags: 'protector solar facial fluido spf 50 bloqueador sol',
       },
       {
         id: 'contorno-ojos',
@@ -108,7 +97,7 @@
         description: 'Reduce bolsas y ojeras visibles, devolviendo frescura a la mirada.',
         price: 26.0,
         image: 'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=900&q=80',
-        tags: 'contorno ojos revitalizante ojeras bolsas eye cream dark circles revitalizing',
+        tags: 'contorno ojos revitalizante ojeras bolsas',
       },
     ],
 
@@ -130,21 +119,21 @@
 
     cardHTML(p) {
       return `
-        <article class="group flex flex-col rounded-3xl bg-white shadow-soft overflow-hidden fade-in">
-          <div class="relative aspect-[4/5] overflow-hidden img-fallback">
+        <article class="group flex flex-col rounded-3xl bg-white shadow-soft overflow-hidden fade-in border border-black/5">
+          <div class="relative aspect-[4/5] overflow-hidden img-fallback bg-[#F7F1EC]">
             <img src="${p.image}" alt="${escapeHTML(p.name)}" loading="lazy"
               class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               onerror="this.style.display='none'" />
-            <span class="absolute top-3 left-3 rounded-full bg-white/85 backdrop-blur px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-rose font-semibold">CELIA beauty</span>
+            <span class="absolute top-3 left-3 rounded-full bg-white/85 backdrop-blur px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#876E79] font-semibold">CELIA beauty</span>
           </div>
           <div class="flex flex-col flex-1 p-5">
-            <h3 class="font-serif text-lg leading-snug">${escapeHTML(p.name)}</h3>
-            <p class="text-sm text-taupe mt-2 flex-1 leading-relaxed">${escapeHTML(p.description)}</p>
+            <h3 class="font-serif text-lg leading-snug text-[#282324]">${escapeHTML(p.name)}</h3>
+            <p class="text-sm text-[#7A6A66] mt-2 flex-1 leading-relaxed">${escapeHTML(p.description)}</p>
             <div class="mt-4 flex items-center justify-between gap-3">
-              <span class="font-serif text-xl font-semibold">${money(p.price)}</span>
+              <span class="font-serif text-xl font-semibold text-[#282324]">${money(p.price)}</span>
             </div>
             <button type="button" data-add="${p.id}"
-              class="mt-4 w-full inline-flex items-center justify-center gap-1.5 rounded-full border border-ink py-2.5 text-sm font-medium hover:bg-ink hover:text-cream transition active:scale-[0.98]">
+              class="mt-4 w-full inline-flex items-center justify-center gap-1.5 rounded-full border border-[#282324] py-2.5 text-sm font-medium hover:bg-[#282324] hover:text-white transition active:scale-[0.98] cursor-pointer">
               <i data-lucide="plus" class="w-4 h-4"></i> Agregar al Carrito
             </button>
           </div>
@@ -153,17 +142,17 @@
 
     render(query = '') {
       const list = this.filter(query);
-      const grid = $('#product-grid');
+      const grid = $('#product-grid') || $('#catalog-grid') || document.querySelector('[data-catalog-grid]');
       if (!grid) return;
       grid.innerHTML = list.map((p) => this.cardHTML(p)).join('');
-      
+
       const emptyEl = $('#empty-search');
       if (emptyEl) emptyEl.classList.toggle('hidden', list.length > 0);
-      
+
       const statusEl = $('#search-status');
       if (statusEl) {
         statusEl.textContent = query.trim()
-          ? `${list.length} result${list.length === 1 ? '' : 's'} for “${query.trim()}”`
+          ? `${list.length} resultado${list.length === 1 ? '' : 's'} para “${query.trim()}”`
           : '';
       }
       UI.icons();
@@ -307,11 +296,12 @@
     toast(text) {
       const el = $('#toast');
       const textEl = $('#toast-text');
-      if (!el || !textEl) return;
-      textEl.textContent = text;
-      el.classList.remove('hidden');
-      clearTimeout(this._toastTimer);
-      this._toastTimer = setTimeout(() => el.classList.add('hidden'), 2200);
+      if (el && textEl) {
+        textEl.textContent = text;
+        el.classList.remove('hidden');
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => el.classList.add('hidden'), 2200);
+      }
     },
 
     lockScroll(lock) {
@@ -383,25 +373,25 @@
 
       if (cartItems) {
         cartItems.innerHTML = Cart.lines().map((l) => `
-          <div class="flex gap-4 fade-in">
-            <div class="w-20 h-24 rounded-2xl overflow-hidden shrink-0 img-fallback">
+          <div class="flex gap-4 fade-in py-3 border-b border-black/5">
+            <div class="w-16 h-20 rounded-xl overflow-hidden shrink-0 bg-[#F7F1EC]">
               <img src="${l.product.image}" alt="" class="w-full h-full object-cover" onerror="this.style.display='none'" />
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-start justify-between gap-2">
-                <p class="font-serif leading-snug">${escapeHTML(l.product.name)}</p>
-                <button type="button" data-remove="${l.id}" class="p-1 text-taupe hover:text-red-600" aria-label="Eliminar ${escapeHTML(l.product.name)}">
+                <p class="font-serif text-sm leading-snug">${escapeHTML(l.product.name)}</p>
+                <button type="button" data-remove="${l.id}" class="p-1 text-[#7A6A66] hover:text-red-600" aria-label="Eliminar ${escapeHTML(l.product.name)}">
                   <i data-lucide="trash-2" class="w-4 h-4"></i>
                 </button>
               </div>
-              <p class="text-xs text-taupe mt-0.5">${money(l.product.price)} c/u</p>
+              <p class="text-xs text-[#7A6A66] mt-0.5">${money(l.product.price)} c/u</p>
               <div class="mt-2 flex items-center justify-between">
-                <div class="inline-flex items-center rounded-full border border-sand bg-white">
-                  <button type="button" data-dec="${l.id}" class="w-8 h-8 flex items-center justify-center hover:text-rose" aria-label="Restar uno"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
-                  <span class="w-8 text-center text-sm font-medium" aria-live="polite">${l.qty}</span>
-                  <button type="button" data-inc="${l.id}" class="w-8 h-8 flex items-center justify-center hover:text-rose" aria-label="Sumar uno"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
+                <div class="inline-flex items-center rounded-full border border-[#EADFD6] bg-white">
+                  <button type="button" data-dec="${l.id}" class="w-7 h-7 flex items-center justify-center hover:text-rose" aria-label="Restar uno"><i data-lucide="minus" class="w-3 h-3"></i></button>
+                  <span class="w-7 text-center text-xs font-medium" aria-live="polite">${l.qty}</span>
+                  <button type="button" data-inc="${l.id}" class="w-7 h-7 flex items-center justify-center hover:text-rose" aria-label="Sumar uno"><i data-lucide="plus" class="w-3 h-3"></i></button>
                 </div>
-                <span class="font-semibold text-sm">${money(l.lineTotal)}</span>
+                <span class="font-semibold text-xs">${money(l.lineTotal)}</span>
               </div>
             </div>
           </div>`).join('');
@@ -441,7 +431,7 @@
       if (msg) {
         if (t.coupon) {
           msg.innerHTML = `<span class="text-emerald-700">Cupón <b>${escapeHTML(t.coupon)}</b> aplicado.</span>
-            <button type="button" id="coupon-remove" class="underline text-taupe ml-1">Quitar</button>`;
+            <button type="button" id="coupon-remove" class="underline text-[#7A6A66] ml-1">Quitar</button>`;
           if (couponInput) couponInput.value = t.coupon;
         } else if ($('#coupon-remove')) {
           msg.textContent = '';
@@ -452,8 +442,8 @@
       const checkoutItems = $('#checkout-items');
       if (checkoutItems) {
         checkoutItems.innerHTML = Cart.lines().map((l) => `
-          <li class="flex justify-between gap-3">
-            <span><span class="text-taupe">${l.qty} ×</span> ${escapeHTML(l.product.name)}</span>
+          <li class="flex justify-between gap-3 text-xs">
+            <span><span class="text-[#7A6A66]">${l.qty} ×</span> ${escapeHTML(l.product.name)}</span>
             <span class="font-medium whitespace-nowrap">${money(l.lineTotal)}</span>
           </li>`).join('');
       }
@@ -464,11 +454,11 @@
   const Checkout = {
     rules: {
       name: (v) => (v.trim().length >= 3 && /\s/.test(v.trim()) ? '' : 'Ingresa tu nombre y apellido.'),
-      phone: (v) => (v.replace(/\D/g, '').length >= 7 && /^[\d\s()+\-.]+$/.test(v.trim()) ? '' : 'Ingresa un teléfono válido (mínimo 7 dígitos).'),
-      email: (v) => (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? '' : 'Ingresa un correo electrónico válido.'),
-      address: (v) => (v.trim().length >= 8 ? '' : 'Ingresa una dirección de entrega completa.'),
+      phone: (v) => (v.replace(/\D/g, '').length >= 7 && /^[\d\s()+\-.]+$/.test(v.trim()) ? '' : 'Ingresa un teléfono válido.'),
+      email: (v) => (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? '' : 'Ingresa un correo válido.'),
+      address: (v) => (v.trim().length >= 8 ? '' : 'Ingresa una dirección completa.'),
       card: (v) => (Checkout.luhn(v.replace(/\s/g, '')) ? '' : 'Número de tarjeta inválido.'),
-      exp: (v) => (Checkout.validExpiry(v) ? '' : 'Fecha inválida o vencida.'),
+      exp: (v) => (Checkout.validExpiry(v) ? '' : 'Fecha inválida.'),
       cvc: (v) => (/^\d{3,4}$/.test(v.trim()) ? '' : 'CVC inválido.'),
     },
 
@@ -689,8 +679,8 @@
           ['Órdenes', orders.length],
           ['Ventas', money(revenue)],
         ].map(([label, value]) => `
-          <div class="rounded-2xl bg-cream px-4 py-3">
-            <p class="text-[11px] uppercase tracking-wider text-taupe">${label}</p>
+          <div class="rounded-2xl bg-[#F7F1EC] px-4 py-3">
+            <p class="text-[11px] uppercase tracking-wider text-[#7A6A66]">${label}</p>
             <p class="font-serif text-xl sm:text-2xl mt-0.5">${value}</p>
           </div>`).join('');
       }
@@ -699,7 +689,7 @@
         const active = b.dataset.tab === this.tab;
         b.classList.toggle('bg-white', active);
         b.classList.toggle('shadow-sm', active);
-        b.classList.toggle('text-taupe', !active);
+        b.classList.toggle('text-[#7A6A66]', !active);
         b.setAttribute('aria-selected', String(active));
       });
 
@@ -710,25 +700,25 @@
       if (this.tab === 'customers') {
         head = ['Nombre', 'Teléfono', 'Correo', 'Dirección', 'Órdenes', 'Total gastado', 'Último pedido'];
         rows = customers.slice().reverse().map((c) => `
-          <tr class="hover:bg-cream/60">
+          <tr class="hover:bg-[#F7F1EC]/60">
             <td class="${td} font-medium">${escapeHTML(c.name)}</td>
             <td class="${td} whitespace-nowrap">${escapeHTML(c.phone)}</td>
             <td class="${td}">${escapeHTML(c.email)}</td>
             <td class="${td} min-w-[12rem]">${escapeHTML(c.address)}</td>
             <td class="${td} text-center">${Number(c.ordersCount) || 0}</td>
             <td class="${td} whitespace-nowrap">${money(Number(c.totalSpent) || 0)}</td>
-            <td class="${td} whitespace-nowrap text-taupe">${escapeHTML(this.formatDate(c.updatedAt))}</td>
+            <td class="${td} whitespace-nowrap text-[#7A6A66]">${escapeHTML(this.formatDate(c.updatedAt))}</td>
           </tr>`);
       } else {
         head = ['Orden', 'Fecha', 'Cliente', 'Productos', 'Pago', 'Descuento', 'Total'];
         rows = orders.slice().reverse().map((o) => `
-          <tr class="hover:bg-cream/60">
+          <tr class="hover:bg-[#F7F1EC]/60">
             <td class="${td} font-mono text-xs whitespace-nowrap">${escapeHTML(o.id)}</td>
-            <td class="${td} whitespace-nowrap text-taupe">${escapeHTML(this.formatDate(o.createdAt))}</td>
-            <td class="${td}"><p class="font-medium">${escapeHTML(o.customer?.name)}</p><p class="text-xs text-taupe">${escapeHTML(o.customer?.phone)}</p></td>
+            <td class="${td} whitespace-nowrap text-[#7A6A66]">${escapeHTML(this.formatDate(o.createdAt))}</td>
+            <td class="${td}"><p class="font-medium">${escapeHTML(o.customer?.name)}</p><p class="text-xs text-[#7A6A66]">${escapeHTML(o.customer?.phone)}</p></td>
             <td class="${td} min-w-[14rem]">${(o.items || []).map((i) => `${Number(i.qty) || 0} × ${escapeHTML(i.name)}`).join('<br>')}</td>
             <td class="${td}">${escapeHTML(o.payment)}</td>
-            <td class="${td} whitespace-nowrap text-rose">${o.discount ? `−${money(o.discount)} <span class="text-xs">(${escapeHTML(o.coupon)})</span>` : '—'}</td>
+            <td class="${td} whitespace-nowrap text-[#876E79]">${o.discount ? `−${money(o.discount)} <span class="text-xs">(${escapeHTML(o.coupon)})</span>` : '—'}</td>
             <td class="${td} whitespace-nowrap font-semibold">${money(Number(o.total) || 0)}</td>
           </tr>`);
       }
@@ -785,7 +775,7 @@
     const searchInput = $('#search-input');
     if (searchInput) searchInput.addEventListener('input', (e) => Catalog.render(e.target.value));
 
-    const productGrid = $('#product-grid');
+    const productGrid = $('#product-grid') || $('#catalog-grid') || document.querySelector('[data-catalog-grid]');
     if (productGrid) {
       productGrid.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-add]');
@@ -818,7 +808,7 @@
         const msg = $('#coupon-message');
         if (!input || !msg) return;
         if (!input.value.trim()) {
-          msg.innerHTML = '<span class="text-taupe">Escribe un código de descuento.</span>';
+          msg.innerHTML = '<span class="text-[#7A6A66]">Escribe un código de descuento.</span>';
           return;
         }
         if (Cart.applyCoupon(input.value)) {
@@ -836,7 +826,7 @@
         Cart.removeCoupon();
         const input = $('#coupon-input');
         if (input) input.value = '';
-        couponMessage.innerHTML = '<span class="text-taupe">Cupón eliminado.</span>';
+        couponMessage.innerHTML = '<span class="text-[#7A6A66]">Cupón eliminado.</span>';
       });
     }
 
@@ -860,7 +850,7 @@
     }
 
     $$('[data-close]').forEach((b) => b.addEventListener('click', () => UI.close()));
-    
+
     const overlay = $('#overlay');
     if (overlay) overlay.addEventListener('click', () => UI.close());
 
