@@ -10,7 +10,7 @@
 
   /* ============================== CONFIG ============================== */
   const CONFIG = {
-    whatsappNumber: '14085051897',
+    whatsappNumber: '50585759628',
     currency: 'USD',
     locale: 'en-US',
     coupons: {
