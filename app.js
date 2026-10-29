@@ -389,7 +389,7 @@
                 <div class="inline-flex items-center rounded-full border border-[#EADFD6] bg-white">
                   <button type="button" data-dec="${l.id}" class="w-7 h-7 flex items-center justify-center hover:text-rose" aria-label="Restar uno"><i data-lucide="minus" class="w-3 h-3"></i></button>
                   <span class="w-7 text-center text-xs font-medium" aria-live="polite">${l.qty}</span>
-                  <button type="button" data-inc="${l.id}" class="w-7 h-7 flex items-center justify-center hover:text-rose" aria-label="Sumar uno"><i data-lucide="plus" class="w-3 h-3"></i></button>
+                  <button type="button" data-inc="${l.id}" class="w-7 h-7 flex items-center justify-center hover:text-rose" aria-label="Sumar uno"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
                 </div>
                 <span class="font-semibold text-xs">${money(l.lineTotal)}</span>
               </div>
