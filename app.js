@@ -20,22 +20,30 @@
     },
   };
 
-  const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const $ = function(sel, root) {
+    return (root || document).querySelector(sel);
+  };
+  const $$ = function(sel, root) {
+    return Array.from((root || document).querySelectorAll(sel));
+  };
 
-  const money = (n) =>
-    new Intl.NumberFormat(CONFIG.locale, { style: 'currency', currency: CONFIG.currency }).format(n);
+  const money = function(n) {
+    return new Intl.NumberFormat(CONFIG.locale, { style: 'currency', currency: CONFIG.currency }).format(n);
+  };
 
-  const round2 = (n) => Math.round(n * 100) / 100;
+  const round2 = function(n) {
+    return Math.round(n * 100) / 100;
+  };
 
-  const escapeHTML = (value) =>
-    String(value ?? '').replace(/[&<>"']/g, (c) => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-    }[c]));
+  const escapeHTML = function(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
 
   /* ============================== STORAGE ============================= */
   const Storage = {
-    get(key, fallback) {
+    get: function(key, fallback) {
       try {
         const raw = localStorage.getItem(key);
         return raw === null ? fallback : JSON.parse(raw);
@@ -43,7 +51,7 @@
         return fallback;
       }
     },
-    set(key, value) {
+    set: function(key, value) {
       try {
         localStorage.setItem(key, JSON.stringify(value));
         return true;
@@ -51,7 +59,7 @@
         return false;
       }
     },
-    remove(key) {
+    remove: function(key) {
       try { localStorage.removeItem(key); } catch (_) {}
     },
   };
@@ -101,58 +109,58 @@
       },
     ],
 
-    byId(id) {
-      return this.products.find((p) => p.id === id);
+    byId: function(id) {
+      return this.products.find(function(p) { return p.id === id; });
     },
 
-    normalize(text) {
+    normalize: function(text) {
       return String(text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     },
 
-    filter(query) {
-      const q = this.normalize(query.trim());
-      if (!q) return this.products;
-      return this.products.filter((p) =>
-        this.normalize(`${p.name} ${p.description} ${p.tags}`).includes(q)
+    filter: function(query) {
+      const self = this;
+      const q = self.normalize(query.trim());
+      if (!q) return self.products;
+      return self.products.filter(function(p) {
+        return self.normalize(p.name + ' ' + p.description + ' ' + p.tags).includes(q);
+      });
+    },
+
+    cardHTML: function(p) {
+      return (
+        '<article class="group flex flex-col rounded-3xl bg-white shadow-soft overflow-hidden fade-in border border-black/5">' +
+          '<div class="relative aspect-[4/5] overflow-hidden img-fallback bg-[#F7F1EC]">' +
+            '<img src="' + p.image + '" alt="' + escapeHTML(p.name) + '" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" onerror="this.style.display=\'none\'" />' +
+            '<span class="absolute top-3 left-3 rounded-full bg-white/85 backdrop-blur px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#876E79] font-semibold">CELIA beauty</span>' +
+          '</div>' +
+          '<div class="flex flex-col flex-1 p-5">' +
+            '<h3 class="font-serif text-lg leading-snug text-[#282324]">' + escapeHTML(p.name) + '</h3>' +
+            '<p class="text-sm text-[#7A6A66] mt-2 flex-1 leading-relaxed">' + escapeHTML(p.description) + '</p>' +
+            '<div class="mt-4 flex items-center justify-between gap-3">' +
+              '<span class="font-serif text-xl font-semibold text-[#282324]">' + money(p.price) + '</span>' +
+            '</div>' +
+            '<button type="button" data-add="' + p.id + '" class="mt-4 w-full inline-flex items-center justify-center gap-1.5 rounded-full border border-[#282324] py-2.5 text-sm font-medium hover:bg-[#282324] hover:text-white transition active:scale-[0.98] cursor-pointer">' +
+              '<i data-lucide="plus" class="w-4 h-4"></i> Agregar al Carrito' +
+            '</button>' +
+          '</div>' +
+        '</article>'
       );
     },
 
-    cardHTML(p) {
-      return `
-        <article class="group flex flex-col rounded-3xl bg-white shadow-soft overflow-hidden fade-in border border-black/5">
-          <div class="relative aspect-[4/5] overflow-hidden img-fallback bg-[#F7F1EC]">
-            <img src="${p.image}" alt="${escapeHTML(p.name)}" loading="lazy"
-              class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              onerror="this.style.display='none'" />
-            <span class="absolute top-3 left-3 rounded-full bg-white/85 backdrop-blur px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#876E79] font-semibold">CELIA beauty</span>
-          </div>
-          <div class="flex flex-col flex-1 p-5">
-            <h3 class="font-serif text-lg leading-snug text-[#282324]">${escapeHTML(p.name)}</h3>
-            <p class="text-sm text-[#7A6A66] mt-2 flex-1 leading-relaxed">${escapeHTML(p.description)}</p>
-            <div class="mt-4 flex items-center justify-between gap-3">
-              <span class="font-serif text-xl font-semibold text-[#282324]">${money(p.price)}</span>
-            </div>
-            <button type="button" data-add="${p.id}"
-              class="mt-4 w-full inline-flex items-center justify-center gap-1.5 rounded-full border border-[#282324] py-2.5 text-sm font-medium hover:bg-[#282324] hover:text-white transition active:scale-[0.98] cursor-pointer">
-              <i data-lucide="plus" class="w-4 h-4"></i> Agregar al Carrito
-            </button>
-          </div>
-        </article>`;
-    },
-
-    render(query = '') {
-      const list = this.filter(query);
+    render: function(query) {
+      const q = query || '';
+      const list = this.filter(q);
       const grid = $('#product-grid') || $('#catalog-grid') || document.querySelector('[data-catalog-grid]');
       if (!grid) return;
-      grid.innerHTML = list.map((p) => this.cardHTML(p)).join('');
+      grid.innerHTML = list.map(this.cardHTML).join('');
 
       const emptyEl = $('#empty-search');
       if (emptyEl) emptyEl.classList.toggle('hidden', list.length > 0);
 
       const statusEl = $('#search-status');
       if (statusEl) {
-        statusEl.textContent = query.trim()
-          ? `${list.length} resultado${list.length === 1 ? '' : 's'} para “${query.trim()}”`
+        statusEl.textContent = q.trim()
+          ? list.length + ' resultado' + (list.length === 1 ? '' : 's') + ' para “' + q.trim() + '”'
           : '';
       }
       UI.icons();
@@ -164,44 +172,47 @@
     items: {},
     coupon: null,
 
-    load() {
+    load: function() {
       const saved = Storage.get(CONFIG.storageKeys.cart, {});
-      this.items = Object.fromEntries(
-        Object.entries(saved).filter(([id, qty]) => Catalog.byId(id) && qty > 0)
-      );
+      const clean = {};
+      Object.keys(saved).forEach(function(id) {
+        if (Catalog.byId(id) && saved[id] > 0) clean[id] = saved[id];
+      });
+      this.items = clean;
       const code = Storage.get(CONFIG.storageKeys.coupon, null);
       this.coupon = code && CONFIG.coupons[code] ? code : null;
     },
 
-    save() {
+    save: function() {
       Storage.set(CONFIG.storageKeys.cart, this.items);
       if (this.coupon) Storage.set(CONFIG.storageKeys.coupon, this.coupon);
       else Storage.remove(CONFIG.storageKeys.coupon);
     },
 
-    add(id, qty = 1) {
+    add: function(id, qty) {
+      const q = qty || 1;
       if (!Catalog.byId(id)) return;
-      this.items[id] = (this.items[id] || 0) + qty;
+      this.items[id] = (this.items[id] || 0) + q;
       this.commit();
     },
 
-    setQty(id, qty) {
+    setQty: function(id, qty) {
       if (qty <= 0) delete this.items[id];
       else this.items[id] = qty;
       this.commit();
     },
 
-    increment(id) { this.setQty(id, (this.items[id] || 0) + 1); },
-    decrement(id) { this.setQty(id, (this.items[id] || 0) - 1); },
-    remove(id) { this.setQty(id, 0); },
+    increment: function(id) { this.setQty(id, (this.items[id] || 0) + 1); },
+    decrement: function(id) { this.setQty(id, (this.items[id] || 0) - 1); },
+    remove: function(id) { this.setQty(id, 0); },
 
-    clear() {
+    clear: function() {
       this.items = {};
       this.coupon = null;
       this.commit();
     },
 
-    applyCoupon(code) {
+    applyCoupon: function(code) {
       const normalized = String(code || '').trim().toUpperCase();
       if (!CONFIG.coupons[normalized]) return false;
       this.coupon = normalized;
@@ -209,27 +220,30 @@
       return true;
     },
 
-    removeCoupon() {
+    removeCoupon: function() {
       this.coupon = null;
       this.commit();
     },
 
-    lines() {
-      return Object.entries(this.items).map(([id, qty]) => {
+    lines: function() {
+      const self = this;
+      return Object.keys(self.items).map(function(id) {
         const product = Catalog.byId(id);
-        return { id, qty, product, lineTotal: round2(product.price * qty) };
+        const qty = self.items[id];
+        return { id: id, qty: qty, product: product, lineTotal: round2(product.price * qty) };
       });
     },
 
-    count() {
-      return Object.values(this.items).reduce((a, b) => a + b, 0);
+    count: function() {
+      const self = this;
+      return Object.keys(self.items).reduce(function(acc, id) { return acc + self.items[id]; }, 0);
     },
 
-    isEmpty() {
+    isEmpty: function() {
       return this.count() === 0;
     },
 
-    commit() {
+    commit: function() {
       this.save();
       UI.renderCart();
     },
@@ -237,48 +251,48 @@
 
   /* ============================== PRICING ============================= */
   const Pricing = {
-    totals() {
-      const subtotal = round2(Cart.lines().reduce((sum, l) => sum + l.lineTotal, 0));
+    totals: function() {
+      const subtotal = round2(Cart.lines().reduce(function(sum, l) { return sum + l.lineTotal; }, 0));
       const coupon = Cart.coupon ? CONFIG.coupons[Cart.coupon] : null;
       const discount = coupon ? round2(subtotal * coupon.rate) : 0;
       const total = round2(subtotal - discount);
-      return { subtotal, discount, total, coupon: Cart.coupon, couponLabel: coupon ? coupon.label : '' };
+      return { subtotal: subtotal, discount: discount, total: total, coupon: Cart.coupon, couponLabel: coupon ? coupon.label : '' };
     },
   };
 
   /* ============================= WHATSAPP ============================= */
   const WhatsApp = {
-    url(message) {
-      const base = `https://wa.me/${CONFIG.whatsappNumber}`;
-      return message ? `${base}?text=${encodeURIComponent(message)}` : base;
+    url: function(message) {
+      const base = 'https://wa.me/' + CONFIG.whatsappNumber;
+      return message ? base + '?text=' + encodeURIComponent(message) : base;
     },
 
-    contactMessage() {
+    contactMessage: function() {
       return 'Hola CELIA beauty 👋, me gustaría recibir asesoría sobre sus productos.';
     },
 
-    orderMessage(order) {
+    orderMessage: function(order) {
       const lines = order.items
-        .map((i) => `• ${i.qty} x ${i.name} — ${money(i.lineTotal)}`)
+        .map(function(i) { return '• ' + i.qty + ' x ' + i.name + ' — ' + money(i.lineTotal); })
         .join('\n');
 
       const parts = [
-        `*NUEVO PEDIDO — CELIA beauty*`,
-        `Orden: ${order.id}`,
-        `Fecha: ${new Date(order.createdAt).toLocaleString('es-US')}`,
+        '*NUEVO PEDIDO — CELIA beauty*',
+        'Orden: ' + order.id,
+        'Fecha: ' + new Date(order.createdAt).toLocaleString('es-US'),
         '',
-        `*Cliente:* ${order.customer.name}`,
-        `*Teléfono:* ${order.customer.phone}`,
-        `*Correo:* ${order.customer.email}`,
-        `*Dirección de entrega:* ${order.customer.address}`,
+        '*Cliente:* ' + order.customer.name,
+        '*Teléfono:* ' + order.customer.phone,
+        '*Correo:* ' + order.customer.email,
+        '*Dirección de entrega:* ' + order.customer.address,
         '',
-        `*Productos:*`,
+        '*Productos:*',
         lines,
         '',
-        `Subtotal: ${money(order.subtotal)}`,
+        'Subtotal: ' + money(order.subtotal),
       ];
-      if (order.discount > 0) parts.push(`Descuento (${order.coupon}): −${money(order.discount)}`);
-      parts.push(`*TOTAL A PAGAR: ${money(order.total)}*`, '', `Método de pago: ${order.payment}`);
+      if (order.discount > 0) parts.push('Descuento (' + order.coupon + '): −' + money(order.discount));
+      parts.push('*TOTAL A PAGAR: ' + money(order.total) + '*', '', 'Método de pago: ' + order.payment);
       return parts.join('\n');
     },
   };
@@ -287,30 +301,30 @@
   const UI = {
     openPanel: null,
 
-    icons() {
+    icons: function() {
       if (window.lucide && typeof window.lucide.createIcons === 'function') {
         window.lucide.createIcons();
       }
     },
 
-    toast(text) {
+    toast: function(text) {
       const el = $('#toast');
       const textEl = $('#toast-text');
       if (el && textEl) {
         textEl.textContent = text;
         el.classList.remove('hidden');
         clearTimeout(this._toastTimer);
-        this._toastTimer = setTimeout(() => el.classList.add('hidden'), 2200);
+        this._toastTimer = setTimeout(function() { el.classList.add('hidden'); }, 2200);
       }
     },
 
-    lockScroll(lock) {
+    lockScroll: function(lock) {
       document.body.classList.toggle('no-scroll', lock);
       const overlay = $('#overlay');
       if (overlay) overlay.classList.toggle('hidden', !lock);
     },
 
-    open(id) {
+    open: function(id) {
       if (this.openPanel) this.close(false);
       const el = document.getElementById(id);
       if (!el) return;
@@ -324,10 +338,11 @@
       this.openPanel = id;
       this.lockScroll(true);
       const focusable = el.querySelector('input, button:not([data-close]), textarea');
-      if (focusable) setTimeout(() => focusable.focus({ preventScroll: true }), 50);
+      if (focusable) setTimeout(function() { focusable.focus({ preventScroll: true }); }, 50);
     },
 
-    close(unlock = true) {
+    close: function(unlock) {
+      const shouldUnlock = unlock !== false;
       const id = this.openPanel;
       if (!id) return;
       const el = document.getElementById(id);
@@ -340,10 +355,10 @@
       }
       el.setAttribute('aria-hidden', 'true');
       this.openPanel = null;
-      if (unlock) this.lockScroll(false);
+      if (shouldUnlock) this.lockScroll(false);
     },
 
-    bumpBadge() {
+    bumpBadge: function() {
       const badge = $('#cart-badge');
       if (!badge) return;
       badge.classList.remove('badge-pop');
@@ -351,7 +366,7 @@
       badge.classList.add('badge-pop');
     },
 
-    renderCart() {
+    renderCart: function() {
       const count = Cart.count();
       const badge = $('#cart-badge');
       if (badge) {
@@ -372,38 +387,41 @@
       if (checkoutBtn) checkoutBtn.disabled = empty;
 
       if (cartItems) {
-        cartItems.innerHTML = Cart.lines().map((l) => `
-          <div class="flex gap-4 fade-in py-3 border-b border-black/5">
-            <div class="w-16 h-20 rounded-xl overflow-hidden shrink-0 bg-[#F7F1EC]">
-              <img src="${l.product.image}" alt="" class="w-full h-full object-cover" onerror="this.style.display='none'" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-start justify-between gap-2">
-                <p class="font-serif text-sm leading-snug">${escapeHTML(l.product.name)}</p>
-                <button type="button" data-remove="${l.id}" class="p-1 text-[#7A6A66] hover:text-red-600" aria-label="Eliminar ${escapeHTML(l.product.name)}">
-                  <i data-lucide="trash-2" class="w-4 h-4"></i>
-                </button>
-              </div>
-              <p class="text-xs text-[#7A6A66] mt-0.5">${money(l.product.price)} c/u</p>
-              <div class="mt-2 flex items-center justify-between">
-                <div class="inline-flex items-center rounded-full border border-[#EADFD6] bg-white">
-                  <button type="button" data-dec="${l.id}" class="w-7 h-7 flex items-center justify-center hover:text-rose" aria-label="Restar uno"><i data-lucide="minus" class="w-3 h-3"></i></button>
-                  <span class="w-7 text-center text-xs font-medium" aria-live="polite">${l.qty}</span>
-                  <button type="button" data-inc="${l.id}" class="w-7 h-7 flex items-center justify-center hover:text-rose" aria-label="Sumar uno"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
-                </div>
-                <span class="font-semibold text-xs">${money(l.lineTotal)}</span>
-              </div>
-            </div>
-          </div>`).join('');
+        cartItems.innerHTML = Cart.lines().map(function(l) {
+          return (
+            '<div class="flex gap-4 fade-in py-3 border-b border-black/5">' +
+              '<div class="w-16 h-20 rounded-xl overflow-hidden shrink-0 bg-[#F7F1EC]">' +
+                '<img src="' + l.product.image + '" alt="" class="w-full h-full object-cover" onerror="this.style.display=\'none\'" />' +
+              '</div>' +
+              '<div class="flex-1 min-w-0">' +
+                '<div class="flex items-start justify-between gap-2">' +
+                  '<p class="font-serif text-sm leading-snug">' + escapeHTML(l.product.name) + '</p>' +
+                  '<button type="button" data-remove="' + l.id + '" class="p-1 text-[#7A6A66] hover:text-red-600" aria-label="Eliminar">' +
+                    '<i data-lucide="trash-2" class="w-4 h-4"></i>' +
+                  '</button>' +
+                '</div>' +
+                '<p class="text-xs text-[#7A6A66] mt-0.5">' + money(l.product.price) + ' c/u</p>' +
+                '<div class="mt-2 flex items-center justify-between">' +
+                  '<div class="inline-flex items-center rounded-full border border-[#EADFD6] bg-white">' +
+                    '<button type="button" data-dec="' + l.id + '" class="w-7 h-7 flex items-center justify-center hover:text-rose"><i data-lucide="minus" class="w-3 h-3"></i></button>' +
+                    '<span class="w-7 text-center text-xs font-medium">' + l.qty + '</span>' +
+                    '<button type="button" data-inc="' + l.id + '" class="w-7 h-7 flex items-center justify-center hover:text-rose"><i data-lucide="plus" class="w-3 h-3"></i></button>' +
+                  '</div>' +
+                  '<span class="font-semibold text-xs">' + money(l.lineTotal) + '</span>' +
+                '</div>' +
+              '</div>' +
+            '</div>'
+          );
+        }).join('');
       }
 
       this.renderTotals();
       this.icons();
     },
 
-    renderTotals() {
+    renderTotals: function() {
       const t = Pricing.totals();
-      const label = t.coupon ? `(${t.coupon} · ${t.couponLabel})` : '';
+      const label = t.coupon ? '(' + t.coupon + ' · ' + t.couponLabel + ')' : '';
 
       const cartSub = $('#cart-subtotal');
       const cartDisc = $('#cart-discount');
@@ -411,7 +429,7 @@
       const cartTot = $('#cart-total');
 
       if (cartSub) cartSub.textContent = money(t.subtotal);
-      if (cartDisc) cartDisc.textContent = `−${money(t.discount)}`;
+      if (cartDisc) cartDisc.textContent = '−' + money(t.discount);
       if (cartDiscLbl) cartDiscLbl.textContent = label;
       if (cartTot) cartTot.textContent = money(t.total);
 
@@ -421,7 +439,7 @@
       const coTot = $('#co-total');
 
       if (coSub) coSub.textContent = money(t.subtotal);
-      if (coDisc) coDisc.textContent = `−${money(t.discount)}`;
+      if (coDisc) coDisc.textContent = '−' + money(t.discount);
       if (coDiscLbl) coDiscLbl.textContent = label;
       if (coTot) coTot.textContent = money(t.total);
 
@@ -430,8 +448,8 @@
 
       if (msg) {
         if (t.coupon) {
-          msg.innerHTML = `<span class="text-emerald-700">Cupón <b>${escapeHTML(t.coupon)}</b> aplicado.</span>
-            <button type="button" id="coupon-remove" class="underline text-[#7A6A66] ml-1">Quitar</button>`;
+          msg.innerHTML = '<span class="text-emerald-700">Cupón <b>' + escapeHTML(t.coupon) + '</b> aplicado.</span>' +
+            '<button type="button" id="coupon-remove" class="underline text-[#7A6A66] ml-1">Quitar</button>';
           if (couponInput) couponInput.value = t.coupon;
         } else if ($('#coupon-remove')) {
           msg.textContent = '';
@@ -441,11 +459,14 @@
 
       const checkoutItems = $('#checkout-items');
       if (checkoutItems) {
-        checkoutItems.innerHTML = Cart.lines().map((l) => `
-          <li class="flex justify-between gap-3 text-xs">
-            <span><span class="text-[#7A6A66]">${l.qty} ×</span> ${escapeHTML(l.product.name)}</span>
-            <span class="font-medium whitespace-nowrap">${money(l.lineTotal)}</span>
-          </li>`).join('');
+        checkoutItems.innerHTML = Cart.lines().map(function(l) {
+          return (
+            '<li class="flex justify-between gap-3 text-xs">' +
+              '<span><span class="text-[#7A6A66]">' + l.qty + ' ×</span> ' + escapeHTML(l.product.name) + '</span>' +
+              '<span class="font-medium whitespace-nowrap">' + money(l.lineTotal) + '</span>' +
+            '</li>'
+          );
+        }).join('');
       }
     },
   };
@@ -453,16 +474,16 @@
   /* ============================= CHECKOUT ============================= */
   const Checkout = {
     rules: {
-      name: (v) => (v.trim().length >= 3 && /\s/.test(v.trim()) ? '' : 'Ingresa tu nombre y apellido.'),
-      phone: (v) => (v.replace(/\D/g, '').length >= 7 && /^[\d\s()+\-.]+$/.test(v.trim()) ? '' : 'Ingresa un teléfono válido.'),
-      email: (v) => (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? '' : 'Ingresa un correo válido.'),
-      address: (v) => (v.trim().length >= 8 ? '' : 'Ingresa una dirección completa.'),
-      card: (v) => (Checkout.luhn(v.replace(/\s/g, '')) ? '' : 'Número de tarjeta inválido.'),
-      exp: (v) => (Checkout.validExpiry(v) ? '' : 'Fecha inválida.'),
-      cvc: (v) => (/^\d{3,4}$/.test(v.trim()) ? '' : 'CVC inválido.'),
+      name: function(v) { return (v.trim().length >= 3 && /\s/.test(v.trim())) ? '' : 'Ingresa tu nombre y apellido.'; },
+      phone: function(v) { return (v.replace(/\D/g, '').length >= 7 && /^[\d\s()+\-.]+$/.test(v.trim())) ? '' : 'Ingresa un teléfono válido.'; },
+      email: function(v) { return (/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim())) ? '' : 'Ingresa un correo válido.'; },
+      address: function(v) { return (v.trim().length >= 8) ? '' : 'Ingresa una dirección completa.'; },
+      card: function(v) { return Checkout.luhn(v.replace(/\s/g, '')) ? '' : 'Número de tarjeta inválido.'; },
+      exp: function(v) { return Checkout.validExpiry(v) ? '' : 'Fecha inválida.'; },
+      cvc: function(v) { return (/^\d{3,4}$/.test(v.trim())) ? '' : 'CVC inválido.'; },
     },
 
-    luhn(num) {
+    luhn: function(num) {
       if (!/^\d{13,19}$/.test(num)) return false;
       let sum = 0;
       let dbl = false;
@@ -475,7 +496,7 @@
       return sum % 10 === 0;
     },
 
-    validExpiry(v) {
+    validExpiry: function(v) {
       const m = /^(\d{2})\/(\d{2})$/.exec(v.trim());
       if (!m) return false;
       const month = Number(m[1]);
@@ -485,16 +506,16 @@
       return year > now.getFullYear() || (year === now.getFullYear() && month >= now.getMonth() + 1);
     },
 
-    paymentMethod() {
+    paymentMethod: function() {
       const checked = $('input[name="payment"]:checked');
       return checked ? checked.value : '';
     },
 
-    isCard() {
+    isCard: function() {
       return this.paymentMethod() === 'Tarjeta (simulado)';
     },
 
-    setError(input, message) {
+    setError: function(input, message) {
       if (!input) return;
       const err = input.parentElement ? input.parentElement.querySelector('.field-error') : null;
       input.classList.toggle('border-red-400', !!message);
@@ -505,7 +526,7 @@
       }
     },
 
-    validateField(input) {
+    validateField: function(input) {
       if (!input) return true;
       const rule = this.rules[input.name];
       if (!rule) return true;
@@ -514,16 +535,17 @@
       return !message;
     },
 
-    validate() {
+    validate: function() {
       const form = $('#checkout-form');
       if (!form) return false;
       const fields = ['name', 'phone', 'email', 'address'];
       if (this.isCard()) fields.push('card', 'exp', 'cvc');
 
       let firstInvalid = null;
-      fields.forEach((name) => {
+      const self = this;
+      fields.forEach(function(name) {
         const input = form.elements[name];
-        if (input && !this.validateField(input) && !firstInvalid) firstInvalid = input;
+        if (input && !self.validateField(input) && !firstInvalid) firstInvalid = input;
       });
 
       const payErr = $('#payment-error');
@@ -537,7 +559,7 @@
       return !firstInvalid && hasPayment;
     },
 
-    buildOrder() {
+    buildOrder: function() {
       const form = $('#checkout-form');
       const t = Pricing.totals();
       const customer = {
@@ -548,35 +570,35 @@
       };
       const payment = this.paymentMethod();
       const order = {
-        id: `CB-${Date.now().toString(36).toUpperCase()}`,
+        id: 'CB-' + Date.now().toString(36).toUpperCase(),
         createdAt: new Date().toISOString(),
-        customer,
-        items: Cart.lines().map((l) => ({
-          id: l.id, name: l.product.name, price: l.product.price, qty: l.qty, lineTotal: l.lineTotal,
-        })),
+        customer: customer,
+        items: Cart.lines().map(function(l) {
+          return { id: l.id, name: l.product.name, price: l.product.price, qty: l.qty, lineTotal: l.lineTotal };
+        }),
         subtotal: t.subtotal,
         coupon: t.coupon,
         discount: t.discount,
         total: t.total,
-        payment,
+        payment: payment,
         status: 'Pendiente',
       };
       if (payment === 'Tarjeta (simulado)') {
         const digits = form.elements.card.value.replace(/\D/g, '');
         order.cardLast4 = digits.slice(-4);
-        order.payment = `Tarjeta (simulado) •••• ${order.cardLast4}`;
+        order.payment = 'Tarjeta (simulado) •••• ' + order.cardLast4;
       }
       return order;
     },
 
-    persist(order) {
+    persist: function(order) {
       const orders = Storage.get(CONFIG.storageKeys.orders, []);
       orders.push(order);
       Storage.set(CONFIG.storageKeys.orders, orders);
 
       const customers = Storage.get(CONFIG.storageKeys.customers, []);
       const key = order.customer.email;
-      const existing = customers.find((c) => c.email === key);
+      const existing = customers.find(function(c) { return c.email === key; });
       if (existing) {
         Object.assign(existing, order.customer, {
           updatedAt: order.createdAt,
@@ -584,19 +606,18 @@
           totalSpent: round2((existing.totalSpent || 0) + order.total),
         });
       } else {
-        customers.push({
-          ...order.customer,
-          id: `CL-${String(customers.length + 1).padStart(3, '0')}`,
+        customers.push(Object.assign({}, order.customer, {
+          id: 'CL-' + String(customers.length + 1).padStart(3, '0'),
           createdAt: order.createdAt,
           updatedAt: order.createdAt,
           ordersCount: 1,
           totalSpent: order.total,
-        });
+        }));
       }
       Storage.set(CONFIG.storageKeys.customers, customers);
     },
 
-    submit(event) {
+    submit: function(event) {
       event.preventDefault();
       if (Cart.isEmpty()) {
         UI.toast('Tu carrito está vacío.');
@@ -612,42 +633,44 @@
       $('#checkout-form').reset();
       this.toggleCardFields();
       UI.close();
-      UI.toast(`Pedido ${order.id} registrado. Abriendo WhatsApp…`);
+      UI.toast('Pedido ' + order.id + ' registrado. Abriendo WhatsApp…');
 
-      setTimeout(() => { window.location.href = url; }, 700);
+      setTimeout(function() { window.location.href = url; }, 700);
     },
 
-    toggleCardFields() {
+    toggleCardFields: function() {
       const show = this.isCard();
       const cardContainer = $('#card-fields');
+      const self = this;
       if (cardContainer) cardContainer.classList.toggle('hidden', !show);
       if (!show) {
         const form = $('#checkout-form');
-        if (form) ['card', 'exp', 'cvc'].forEach((n) => this.setError(form.elements[n], ''));
+        if (form) ['card', 'exp', 'cvc'].forEach(function(n) { self.setError(form.elements[n], ''); });
       }
     },
 
-    bind() {
+    bind: function() {
       const form = $('#checkout-form');
+      const self = this;
       if (!form) return;
-      form.addEventListener('submit', (e) => this.submit(e));
-      form.addEventListener('change', (e) => {
-        if (e.target.name === 'payment') this.toggleCardFields();
+      form.addEventListener('submit', function(e) { self.submit(e); });
+      form.addEventListener('change', function(e) {
+        if (e.target.name === 'payment') self.toggleCardFields();
       });
-      form.addEventListener('focusout', (e) => {
-        if (e.target.name && e.target.value) this.validateField(e.target);
+      form.addEventListener('focusout', function(e) {
+        if (e.target.name && e.target.value) self.validateField(e.target);
       });
-      form.addEventListener('input', (e) => {
+      form.addEventListener('input', function(e) {
         const t = e.target;
         if (t.name === 'card') {
           t.value = t.value.replace(/\D/g, '').slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ');
         } else if (t.name === 'exp') {
           const d = t.value.replace(/\D/g, '').slice(0, 4);
-          t.value = d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+          t.value = d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d;
         } else if (t.name === 'cvc') {
           t.value = t.value.replace(/\D/g, '').slice(0, 4);
         }
-        if (t.getAttribute('aria-invalid') === 'true') this.validateField(t);
+        if (t.getAttribute('aria-invalid') === 'true') self.validateField(t);
       });
     },
   };
@@ -656,21 +679,23 @@
   const Admin = {
     tab: 'customers',
 
-    data() {
+    data: function() {
       return {
         customers: Storage.get(CONFIG.storageKeys.customers, []),
         orders: Storage.get(CONFIG.storageKeys.orders, []),
       };
     },
 
-    formatDate(iso) {
+    formatDate: function(iso) {
       try { return new Date(iso).toLocaleString('es-US', { dateStyle: 'short', timeStyle: 'short' }); }
       catch (_) { return iso; }
     },
 
-    render() {
-      const { customers, orders } = this.data();
-      const revenue = round2(orders.reduce((s, o) => s + (o.total || 0), 0));
+    render: function() {
+      const d = this.data();
+      const customers = d.customers;
+      const orders = d.orders;
+      const revenue = round2(orders.reduce(function(s, o) { return s + (o.total || 0); }, 0));
 
       const statsEl = $('#admin-stats');
       if (statsEl) {
@@ -678,15 +703,19 @@
           ['Clientes', customers.length],
           ['Órdenes', orders.length],
           ['Ventas', money(revenue)],
-        ].map(([label, value]) => `
-          <div class="rounded-2xl bg-[#F7F1EC] px-4 py-3">
-            <p class="text-[11px] uppercase tracking-wider text-[#7A6A66]">${label}</p>
-            <p class="font-serif text-xl sm:text-2xl mt-0.5">${value}</p>
-          </div>`).join('');
+        ].map(function(pair) {
+          return (
+            '<div class="rounded-2xl bg-[#F7F1EC] px-4 py-3">' +
+              '<p class="text-[11px] uppercase tracking-wider text-[#7A6A66]">' + pair[0] + '</p>' +
+              '<p class="font-serif text-xl sm:text-2xl mt-0.5">' + pair[1] + '</p>' +
+            '</div>'
+          );
+        }).join('');
       }
 
-      $$('.admin-tab').forEach((b) => {
-        const active = b.dataset.tab === this.tab;
+      const self = this;
+      $$('.admin-tab').forEach(function(b) {
+        const active = b.dataset.tab === self.tab;
         b.classList.toggle('bg-white', active);
         b.classList.toggle('shadow-sm', active);
         b.classList.toggle('text-[#7A6A66]', !active);
@@ -699,51 +728,57 @@
 
       if (this.tab === 'customers') {
         head = ['Nombre', 'Teléfono', 'Correo', 'Dirección', 'Órdenes', 'Total gastado', 'Último pedido'];
-        rows = customers.slice().reverse().map((c) => `
-          <tr class="hover:bg-[#F7F1EC]/60">
-            <td class="${td} font-medium">${escapeHTML(c.name)}</td>
-            <td class="${td} whitespace-nowrap">${escapeHTML(c.phone)}</td>
-            <td class="${td}">${escapeHTML(c.email)}</td>
-            <td class="${td} min-w-[12rem]">${escapeHTML(c.address)}</td>
-            <td class="${td} text-center">${Number(c.ordersCount) || 0}</td>
-            <td class="${td} whitespace-nowrap">${money(Number(c.totalSpent) || 0)}</td>
-            <td class="${td} whitespace-nowrap text-[#7A6A66]">${escapeHTML(this.formatDate(c.updatedAt))}</td>
-          </tr>`);
+        rows = customers.slice().reverse().map(function(c) {
+          return (
+            '<tr class="hover:bg-[#F7F1EC]/60">' +
+              '<td class="' + td + ' font-medium">' + escapeHTML(c.name) + '</td>' +
+              '<td class="' + td + ' whitespace-nowrap">' + escapeHTML(c.phone) + '</td>' +
+              '<td class="' + td + '">' + escapeHTML(c.email) + '</td>' +
+              '<td class="' + td + ' min-w-[12rem]">' + escapeHTML(c.address) + '</td>' +
+              '<td class="' + td + ' text-center">' + (Number(c.ordersCount) || 0) + '</td>' +
+              '<td class="' + td + ' whitespace-nowrap">' + money(Number(c.totalSpent) || 0) + '</td>' +
+              '<td class="' + td + ' whitespace-nowrap text-[#7A6A66]">' + escapeHTML(self.formatDate(c.updatedAt)) + '</td>' +
+            '</tr>'
+          );
+        });
       } else {
         head = ['Orden', 'Fecha', 'Cliente', 'Productos', 'Pago', 'Descuento', 'Total'];
-        rows = orders.slice().reverse().map((o) => `
-          <tr class="hover:bg-[#F7F1EC]/60">
-            <td class="${td} font-mono text-xs whitespace-nowrap">${escapeHTML(o.id)}</td>
-            <td class="${td} whitespace-nowrap text-[#7A6A66]">${escapeHTML(this.formatDate(o.createdAt))}</td>
-            <td class="${td}"><p class="font-medium">${escapeHTML(o.customer?.name)}</p><p class="text-xs text-[#7A6A66]">${escapeHTML(o.customer?.phone)}</p></td>
-            <td class="${td} min-w-[14rem]">${(o.items || []).map((i) => `${Number(i.qty) || 0} × ${escapeHTML(i.name)}`).join('<br>')}</td>
-            <td class="${td}">${escapeHTML(o.payment)}</td>
-            <td class="${td} whitespace-nowrap text-[#876E79]">${o.discount ? `−${money(o.discount)} <span class="text-xs">(${escapeHTML(o.coupon)})</span>` : '—'}</td>
-            <td class="${td} whitespace-nowrap font-semibold">${money(Number(o.total) || 0)}</td>
-          </tr>`);
+        rows = orders.slice().reverse().map(function(o) {
+          return (
+            '<tr class="hover:bg-[#F7F1EC]/60">' +
+              '<td class="' + td + ' font-mono text-xs whitespace-nowrap">' + escapeHTML(o.id) + '</td>' +
+              '<td class="' + td + ' whitespace-nowrap text-[#7A6A66]">' + escapeHTML(self.formatDate(o.createdAt)) + '</td>' +
+              '<td class="' + td + '"><p class="font-medium">' + escapeHTML(o.customer && o.customer.name) + '</p><p class="text-xs text-[#7A6A66]">' + escapeHTML(o.customer && o.customer.phone) + '</p></td>' +
+              '<td class="' + td + ' min-w-[14rem]">' + ((o.items || []).map(function(i) { return (Number(i.qty) || 0) + ' × ' + escapeHTML(i.name); }).join('<br>')) + '</td>' +
+              '<td class="' + td + '">' + escapeHTML(o.payment) + '</td>' +
+              '<td class="' + td + ' whitespace-nowrap text-[#876E79]">' + (o.discount ? '−' + money(o.discount) + ' <span class="text-xs">(' + escapeHTML(o.coupon) + ')</span>' : '—') + '</td>' +
+              '<td class="' + td + ' whitespace-nowrap font-semibold">' + money(Number(o.total) || 0) + '</td>' +
+            '</tr>'
+          );
+        });
       }
 
       const thead = $('#admin-thead');
       const tbody = $('#admin-tbody');
       const emptyEl = $('#admin-empty');
 
-      if (thead) thead.innerHTML = `<tr>${head.map((h) => `<th class="px-4 py-3 font-semibold">${h}</th>`).join('')}</tr>`;
+      if (thead) thead.innerHTML = '<tr>' + head.map(function(h) { return '<th class="px-4 py-3 font-semibold">' + h + '</th>'; }).join('') + '</tr>';
       if (tbody) tbody.innerHTML = rows.join('');
       if (emptyEl) emptyEl.classList.toggle('hidden', rows.length > 0);
     },
 
-    exportJSON() {
+    exportJSON: function() {
       const blob = new Blob([JSON.stringify(this.data(), null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `celia-beauty-db-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = 'celia-beauty-db-' + new Date().toISOString().slice(0, 10) + '.json';
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      setTimeout(function() { URL.revokeObjectURL(a.href); }, 1000);
     },
 
-    clear() {
+    clear: function() {
       if (!confirm('¿Eliminar todos los clientes y órdenes guardados en este navegador? Esta acción no se puede deshacer.')) return;
       Storage.remove(CONFIG.storageKeys.customers);
       Storage.remove(CONFIG.storageKeys.orders);
@@ -751,46 +786,47 @@
       UI.toast('Base de datos local vaciada.');
     },
 
-    bind() {
+    bind: function() {
       const adminBtn = $('#admin-button');
+      const self = this;
       if (adminBtn) {
-        adminBtn.addEventListener('click', () => {
-          this.render();
+        adminBtn.addEventListener('click', function() {
+          self.render();
           UI.open('admin-modal');
           UI.icons();
         });
       }
-      $$('.admin-tab').forEach((b) =>
-        b.addEventListener('click', () => { this.tab = b.dataset.tab; this.render(); })
-      );
+      $$('.admin-tab').forEach(function(b) {
+        b.addEventListener('click', function() { self.tab = b.dataset.tab; self.render(); });
+      });
       const exportBtn = $('#admin-export');
-      if (exportBtn) exportBtn.addEventListener('click', () => this.exportJSON());
+      if (exportBtn) exportBtn.addEventListener('click', function() { self.exportJSON(); });
       const clearBtn = $('#admin-clear');
-      if (clearBtn) clearBtn.addEventListener('click', () => this.clear());
+      if (clearBtn) clearBtn.addEventListener('click', function() { self.clear(); });
     },
   };
 
   /* =============================== INIT =============================== */
   function bindGlobalEvents() {
     const searchInput = $('#search-input');
-    if (searchInput) searchInput.addEventListener('input', (e) => Catalog.render(e.target.value));
+    if (searchInput) searchInput.addEventListener('input', function(e) { Catalog.render(e.target.value); });
 
     const productGrid = $('#product-grid') || $('#catalog-grid') || document.querySelector('[data-catalog-grid]');
     if (productGrid) {
-      productGrid.addEventListener('click', (e) => {
+      productGrid.addEventListener('click', function(e) {
         const btn = e.target.closest('[data-add]');
         if (!btn) return;
         const product = Catalog.byId(btn.dataset.add);
         if (!product) return;
         Cart.add(product.id);
         UI.bumpBadge();
-        UI.toast(`${product.name} agregado al carrito`);
+        UI.toast(product.name + ' agregado al carrito');
       });
     }
 
     const cartItems = $('#cart-items');
     if (cartItems) {
-      cartItems.addEventListener('click', (e) => {
+      cartItems.addEventListener('click', function(e) {
         const inc = e.target.closest('[data-inc]');
         const dec = e.target.closest('[data-dec]');
         const rem = e.target.closest('[data-remove]');
@@ -802,7 +838,7 @@
 
     const couponForm = $('#coupon-form');
     if (couponForm) {
-      couponForm.addEventListener('submit', (e) => {
+      couponForm.addEventListener('submit', function(e) {
         e.preventDefault();
         const input = $('#coupon-input');
         const msg = $('#coupon-message');
@@ -821,7 +857,7 @@
 
     const couponMessage = $('#coupon-message');
     if (couponMessage) {
-      couponMessage.addEventListener('click', (e) => {
+      couponMessage.addEventListener('click', function(e) {
         if (e.target.id !== 'coupon-remove') return;
         Cart.removeCoupon();
         const input = $('#coupon-input');
@@ -830,47 +866,47 @@
       });
     }
 
-    $$('[data-copy-coupon]').forEach((b) =>
-      b.addEventListener('click', () => {
-        if (navigator.clipboard) navigator.clipboard.writeText('CELIA10').catch(() => {});
+    $$('[data-copy-coupon]').forEach(function(b) {
+      b.addEventListener('click', function() {
+        if (navigator.clipboard) navigator.clipboard.writeText('CELIA10').catch(function() {});
         UI.toast('Cupón CELIA10 copiado');
-      })
-    );
+      });
+    });
 
     const cartBtn = $('#cart-button');
-    if (cartBtn) cartBtn.addEventListener('click', () => UI.open('cart-drawer'));
+    if (cartBtn) cartBtn.addEventListener('click', function() { UI.open('cart-drawer'); });
 
     const checkoutBtn = $('#checkout-button');
     if (checkoutBtn) {
-      checkoutBtn.addEventListener('click', () => {
+      checkoutBtn.addEventListener('click', function() {
         if (Cart.isEmpty()) return;
         UI.renderTotals();
         UI.open('checkout-modal');
       });
     }
 
-    $$('[data-close]').forEach((b) => b.addEventListener('click', () => UI.close()));
+    $$('[data-close]').forEach(function(b) { b.addEventListener('click', function() { UI.close(); }); });
 
     const overlay = $('#overlay');
-    if (overlay) overlay.addEventListener('click', () => UI.close());
+    if (overlay) overlay.addEventListener('click', function() { UI.close(); });
 
-    ['checkout-modal', 'admin-modal'].forEach((id) => {
+    ['checkout-modal', 'admin-modal'].forEach(function(id) {
       const modal = document.getElementById(id);
       if (modal) {
-        modal.addEventListener('click', (e) => {
+        modal.addEventListener('click', function(e) {
           if (e.target.id === id) UI.close();
         });
       }
     });
 
-    document.addEventListener('keydown', (e) => {
+    document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') UI.close();
     });
 
     const waContact = $('#whatsapp-contact');
     if (waContact) waContact.href = WhatsApp.url(WhatsApp.contactMessage());
 
-    window.addEventListener('storage', (e) => {
+    window.addEventListener('storage', function(e) {
       if (e.key === CONFIG.storageKeys.cart || e.key === CONFIG.storageKeys.coupon) {
         Cart.load();
         UI.renderCart();
@@ -893,5 +929,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 
-  window.CeliaBeauty = { CONFIG, Cart, Pricing, WhatsApp, Storage };
+  window.CeliaBeauty = { CONFIG: CONFIG, Cart: Cart, Pricing: Pricing, WhatsApp: WhatsApp, Storage: Storage };
 })();
